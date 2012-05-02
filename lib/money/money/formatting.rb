@@ -45,6 +45,19 @@ class Money
     end
     alias :separator :decimal_mark
 
+    def symbol_position
+      currency_symbol_position = currency.symbol_first? ? :before : :after
+      if Object.const_defined?("I18n") && self.class.use_i18n
+        begin
+          I18n.t!(:"number.currency.format.symbol_position").to_sym
+        rescue I18n::MissingTranslationData
+          currency_symbol_position
+        end
+      else
+        currency_symbol_position
+      end
+    end
+
     # Creates a formatted price string according to several rules.
     #
     # @param [Hash] *rules The options used to format the string.
@@ -73,7 +86,7 @@ class Money
     #   Money.ca_dollar(100).format(:no_cents => true) #=> "$1"
     #   Money.ca_dollar(599).format(:no_cents => true) #=> "$5"
     #
-    # @option *rules [Boolean] :no_cents_if_whole (false) Whether cents should be 
+    # @option *rules [Boolean] :no_cents_if_whole (false) Whether cents should be
     #  omitted if the cent value is zero
     #
     # @example
@@ -174,17 +187,17 @@ class Money
         formatted = "#{self.to_s.to_i}"
       end
 
-      symbol_position =
+      # raise symbol_position.inspect
+
+      symbol_position_value =
         if rules.has_key?(:symbol_position)
           rules[:symbol_position]
-        elsif currency.symbol_first?
-          :before
         else
-          :after
+          symbol_position
         end
 
       if symbol_value && !symbol_value.empty?
-        formatted = if symbol_position == :before 
+        formatted = if symbol_position_value == :before
           "#{symbol_value}#{formatted}"
         else
           symbol_space = rules[:symbol_after_without_space] ? "" : " "
