@@ -173,31 +173,6 @@ describe Money do
     end
   end
 
-  describe "#to_s" do
-    it "works as documented" do
-      Money.new(10_00).to_s.should == "10.00"
-      Money.new(400_08).to_s.should == "400.08"
-      Money.new(-237_43).to_s.should == "-237.43"
-    end
-
-    it "respects :subunit_to_unit currency property" do
-      Money.new(10_00, "BHD").to_s.should == "1.000"
-      Money.new(10_00, "CNY").to_s.should == "10.00"
-    end
-
-    it "does not have decimal when :subunit_to_unit == 1" do
-      Money.new(10_00, "CLP").to_s.should == "1000"
-    end
-
-    it "does not work when :subunit_to_unit == 5" do
-      Money.new(10_00, "MGA").to_s.should == "200.0"
-    end
-
-    it "respects :decimal_mark" do
-      Money.new(10_00, "BRL").to_s.should == "10,00"
-    end
-  end
-
   describe "#to_d" do
     it "works as documented" do
       decimal = Money.new(10_00).to_d

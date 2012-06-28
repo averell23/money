@@ -1,6 +1,9 @@
 # encoding: UTF-8
 class Money
   module Formatting
+    FORMATS = {
+      :default => :to_default_s
+    }
 
     if Object.const_defined?("I18n")
       def thousands_separator
@@ -234,6 +237,50 @@ class Money
       formatted
     end
 
+    # Returns the string representation of money. An optional format may be
+    # specified.
+    # Specify custom formats by assigning them to Money::Formatting::FORMATS.
+    #
+    # @param [Proc, Symbol, Hash] format Which formatter should be used
+    #
+    # @return [String]
+    #
+    # @example
+    #   Money.ca_dollar(100).to_s         #=> "1.00"
+    #   Money.ca_dollar(100).to_s(:short) #=> "$1"
+    def to_s(format = :default)
+      locale    = Object.const_defined?("I18n") ? I18n.locale : locale
+      formatter = ::Money::Formatting::FORMATS[format]
+      formatter = formatter[locale] if locale && formatter.is_a?(Hash) && formatter.has_key?(locale)
+      case formatter
+      when Proc
+        formatter.call(self).to_s
+      when Symbol
+        __send__(formatter)
+      when Hash
+        format(formatter)
+      else
+        self.format # what else could it be?
+      end
+    end
+    alias_method :to_formatted_s, :to_s
+
+    # Returns the amount of money as a string.
+    #
+    # @return [String]
+    #
+    # @example
+    #   Money.ca_dollar(100).to_s #=> "1.00"
+    def to_default_s
+      unit, subunit  = cents.abs.divmod(currency.subunit_to_unit).map{|o| o.to_s}
+      if currency.decimal_places == 0
+        return "-#{unit}" if cents < 0
+        return unit
+      end
+      subunit = (("0" * currency.decimal_places) + subunit)[(-1*currency.decimal_places)..-1]
+      return "-#{unit}#{decimal_mark}#{subunit}" if cents < 0
+      "#{unit}#{decimal_mark}#{subunit}"
+    end
 
     private
 

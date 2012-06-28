@@ -65,7 +65,7 @@ describe Money, "formatting" do
         I18n.locale = :de
         I18n.backend.store_translations(
             :de,
-            :number => { :currency => { :format => { :delimiter => ".", :separator => "," } } }
+            :number => { :currency => { :format => { :delimiter => ".", :separator => ",", :symbol_position => 'after' } } }
         )
       end
 
@@ -73,6 +73,83 @@ describe Money, "formatting" do
 
       its(:thousands_separator) { should == "." }
       its(:decimal_mark) { should == "," }
+      its(:symbol_position) { should == :after }
+    end
+  end
+
+  describe "#to_s" do
+    context "default format" do
+      it "works as documented" do
+        Money.new(10_00).to_s.should == "10.00"
+        Money.new(400_08).to_s.should == "400.08"
+        Money.new(-237_43).to_s.should == "-237.43"
+      end
+
+      it "respects :subunit_to_unit currency property" do
+        Money.new(10_00, "BHD").to_s.should == "1.000"
+        Money.new(10_00, "CNY").to_s.should == "10.00"
+      end
+
+      it "does not have decimal when :subunit_to_unit == 1" do
+        Money.new(10_00, "CLP").to_s.should == "1000"
+      end
+
+      it "does not work when :subunit_to_unit == 5" do
+        Money.new(10_00, "MGA").to_s.should == "200.0"
+      end
+
+      it "respects :decimal_mark" do
+        Money.new(10_00, "BRL").to_s.should == "10,00"
+      end
+    end
+
+    context "custom formats" do
+      let(:money) { Money.new(10_00) }
+
+      it "uses normal formating if given format is unknown" do
+        money.to_s(:unknown).should == money.format
+      end
+
+      it "formats by given hash" do
+        Money::Formatting::FORMATS[:long] = { :with_currency => true, :symbol => false }
+        money.to_s(:long).should == '10.00 USD'
+      end
+
+      it "formats by given proc" do
+        Money::Formatting::FORMATS[:only_currency] = lambda { |m| "#{m.currency.to_s}" }
+        money.to_s(:only_currency).should == 'USD'
+      end
+
+      it "formats by given method name" do
+        Money::Formatting::FORMATS[:only_symbol] = :symbol
+        money.to_s(:only_symbol).should == '$'
+      end
+    end
+
+    context "custom formats with locale given" do
+      let(:money) { Money.new(10_00) }
+
+      before do
+        @_locale = I18n.locale
+        Money::Formatting::FORMATS[:label] = {
+          :de => { :symbol => true, :symbol_position => :after,  :decimal_mark => ',' },
+          :en => { :symbol => true, :symbol_position => :before, :decimal_mark => '.' }
+        }
+      end
+
+      it "takes locale into account if present" do
+        I18n.locale = :de
+        money.to_s(:label).should == '10,00 $'
+        I18n.locale = :en
+        money.to_s(:label).should == '$10.00'
+      end
+
+      it "must not fail on unknown locale, but fallback" do
+        I18n.locale = :uk
+        money.format(:label).should == money.format
+      end
+
+      after  { I18n.locale = @_locale }
     end
   end
 
