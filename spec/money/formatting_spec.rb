@@ -5,6 +5,7 @@ require "spec_helper"
 describe Money, "formatting" do
 
   BAR = '{ "priority": 1, "iso_code": "BAR", "iso_numeric": "840", "name": "Dollar with 4 decimal places", "symbol": "$", "subunit": "Cent", "subunit_to_unit": 10000, "symbol_first": true, "html_entity": "$", "decimal_mark": ".", "thousands_separator": "," }'
+  INDIAN_BAR = '{ "priority": 1, "iso_code": "INDIAN_BAR", "iso_numeric": "840", "name": "Dollar with 4 decimal places", "symbol": "$", "subunit": "Cent", "subunit_to_unit": 10000, "symbol_first": true, "html_entity": "$", "decimal_mark": ".", "thousands_separator": ",", "south_asian_number_formatting": true}'
   EU4 = '{ "priority": 1, "iso_code": "EU4", "iso_numeric": "841", "name": "Euro with 4 decimal places", "symbol": "€", "subunit": "Cent", "subunit_to_unit": 10000, "symbol_first": true, "html_entity": "€", "decimal_mark": ",", "thousands_separator": "." }'
 
   context "without i18n" do
@@ -200,7 +201,7 @@ describe Money, "formatting" do
       one_thousand["EUR"].should == "€1.000,00"
 
       # Rupees
-      one_thousand["INR"].should == "₨1,000.00"
+      one_thousand["INR"].should == "₹1,000.00"
       one_thousand["NPR"].should == "₨1,000.00"
       one_thousand["SCR"].should == "1,000.00 ₨"
       one_thousand["LKR"].should == "1,000.00 ₨"
@@ -209,7 +210,7 @@ describe Money, "formatting" do
       one_thousand["BRL"].should == "R$ 1.000,00"
 
       # Other
-      one_thousand["SEK"].should == "kr1,000.00"
+      one_thousand["SEK"].should == "1.000,00 kr"
       one_thousand["GHC"].should == "₵1,000.00"
     end
 
@@ -299,7 +300,7 @@ describe Money, "formatting" do
         one["EUR"].should == "€1,00"
 
         # Rupees
-        one["INR"].should == "₨1.00"
+        one["INR"].should == "₹1.00"
         one["NPR"].should == "₨1.00"
         one["SCR"].should == "1.00 ₨"
         one["LKR"].should == "1.00 ₨"
@@ -308,7 +309,7 @@ describe Money, "formatting" do
         one["BRL"].should == "R$ 1,00"
 
         # Other
-        one["SEK"].should == "kr1.00"
+        one["SEK"].should == "1,00 kr"
         one["GHC"].should == "₵1.00"
       end
 
@@ -321,7 +322,7 @@ describe Money, "formatting" do
       specify "(:symbol => some non-Boolean value that evaluates to true) returns symbol based on the given currency code" do
         Money.new(100, "GBP").format(:symbol => true).should == "£1.00"
         Money.new(100, "EUR").format(:symbol => true).should == "€1,00"
-        Money.new(100, "SEK").format(:symbol => true).should == "kr1.00"
+        Money.new(100, "SEK").format(:symbol => true).should == "1,00 kr"
       end
 
       specify "(:symbol => "", nil or false) returns the amount without a symbol" do
@@ -356,6 +357,18 @@ describe Money, "formatting" do
     describe ":separator option" do
       specify "(:separator => a separator string) works as documented" do
         Money.us_dollar(100).format(:separator  => ",").should == "$1,00"
+      end
+    end
+
+    describe ":south_asian_number_formatting delimiter" do
+      before(:each) do
+        Money::Currency.register(JSON.parse(INDIAN_BAR, :symbolize_names => true))
+      end
+
+      specify "(:south_asian_number_formatting => true) works as documented" do
+        Money.new(10000000, 'INR').format(:south_asian_number_formatting => true, :symbol => false).should == "1,00,000.00"
+        Money.new(1000000000, 'INDIAN_BAR').format(:south_asian_number_formatting => true, :symbol => false).should == "1,00,000.0000"
+        Money.new(10000000).format(:south_asian_number_formatting => true).should == "$1,00,000.00"
       end
     end
 
@@ -425,68 +438,16 @@ describe Money, "formatting" do
       end
     end
 
-    it "brute forces :subunit_to_unit = 1" do
-      ("0".."9").each do |amt|
-        amt.to_money("VUV").format(:symbol => false).should == amt
-      end
-      ("-1".."-9").each do |amt|
-        amt.to_money("VUV").format(:symbol => false).should == amt
-      end
-      "1000".to_money("VUV").format(:symbol => false).should == "1,000"
-      "-1000".to_money("VUV").format(:symbol => false).should == "-1,000"
+    it "maintains floating point precision" do
+      "0.01".to_money("USD").format(:symbol => false).should == "0.01"
     end
 
-    it "brute forces :subunit_to_unit = 5" do
-      ("0.0".."9.4").each do |amt|
-        next if amt[-1].to_i > 4
-        amt.to_money("MGA").format(:symbol => false).should == amt
-      end
-      ("-0.1".."-9.4").each do |amt|
-        next if amt[-1].to_i > 4
-        amt.to_money("MGA").format(:symbol => false).should == amt
-      end
-      "1000.0".to_money("MGA").format(:symbol => false).should == "1,000.0"
-      "-1000.0".to_money("MGA").format(:symbol => false).should == "-1,000.0"
-    end
-
-    it "brute forces :subunit_to_unit = 10" do
-      ("0.0".."9.9").each do |amt|
-        amt.to_money("VND").format(:symbol => false).should == amt.to_s.gsub(/\./, ",")
-      end
-      ("-0.1".."-9.9").each do |amt|
-        amt.to_money("VND").format(:symbol => false).should == amt.to_s.gsub(/\./, ",")
-      end
-      "1000.0".to_money("VND").format(:symbol => false).should == "1.000,0"
-      "-1000.0".to_money("VND").format(:symbol => false).should == "-1.000,0"
-    end
-
-    it "brute forces :subunit_to_unit = 100" do
-      ("0.00".."9.99").each do |amt|
-        amt.to_money("USD").format(:symbol => false).should == amt
-      end
-      ("-0.01".."-9.99").each do |amt|
-        amt.to_money("USD").format(:symbol => false).should == amt
-      end
-      "1000.00".to_money("USD").format(:symbol => false).should == "1,000.00"
-      "-1000.00".to_money("USD").format(:symbol => false).should == "-1,000.00"
-    end
-
-    it "brute forces :subunit_to_unit = 1000" do
-      ("0.000".."9.999").each do |amt|
-        amt.to_money("IQD").format(:symbol => false).should == amt
-      end
-      ("-0.001".."-9.999").each do |amt|
-        amt.to_money("IQD").format(:symbol => false).should == amt
-      end
-      "1000.000".to_money("IQD").format(:symbol => false).should == "1,000.000"
-      "-1000.000".to_money("IQD").format(:symbol => false).should == "-1,000.000"
-    end
   end
 
   context "custom currencies with 4 decimal places" do
     before :each do
-      Money::Currency.register(MultiJson.load(BAR, :symbolize_keys => true))
-      Money::Currency.register(MultiJson.load(EU4, :symbolize_keys => true))
+      Money::Currency.register(JSON.parse(BAR, :symbolize_names => true))
+      Money::Currency.register(JSON.parse(EU4, :symbolize_names => true))
     end
 
     it "respects custom subunit to unit, decimal and thousands separator" do

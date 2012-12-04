@@ -3,7 +3,6 @@
 require "spec_helper"
 
 describe Money do
-
   describe "-@" do
     it "changes the sign of a number" do
       (- Money.new(0)).should == Money.new(0)
@@ -157,10 +156,10 @@ describe Money do
 
     it "raises ArgumentError when used to compare with an object that doesn't respond to #to_money" do
       expected_message = /Comparison .+ failed/
-      lambda{ Money.new(1_00) <=> Object.new  }.should raise_error(ArgumentError, expected_message)
-      lambda{ Money.new(1_00) <=> Class       }.should raise_error(ArgumentError, expected_message)
-      lambda{ Money.new(1_00) <=> Kernel      }.should raise_error(ArgumentError, expected_message)
-      lambda{ Money.new(1_00) <=> /foo/       }.should raise_error(ArgumentError, expected_message)
+      expect{ Money.new(1_00) <=> Object.new  }.to raise_error(ArgumentError, expected_message)
+      expect{ Money.new(1_00) <=> Class       }.to raise_error(ArgumentError, expected_message)
+      expect{ Money.new(1_00) <=> Kernel      }.to raise_error(ArgumentError, expected_message)
+      expect{ Money.new(1_00) <=> /foo/       }.to raise_error(ArgumentError, expected_message)
     end
   end
 
@@ -230,11 +229,11 @@ describe Money do
     end
 
     it "does not multiply Money by Money (same currency)" do
-      lambda { Money.new( 10, :USD) * Money.new( 4, :USD) }.should raise_error(ArgumentError)
+      expect { Money.new( 10, :USD) * Money.new( 4, :USD) }.to raise_error(ArgumentError)
     end
 
     it "does not multiply Money by Money (different currency)" do
-      lambda { Money.new( 10, :USD) * Money.new( 4, :EUR) }.should raise_error(ArgumentError)
+      expect { Money.new( 10, :USD) * Money.new( 4, :EUR) }.to raise_error(ArgumentError)
     end
   end
 
@@ -273,6 +272,28 @@ describe Money do
       ts.each do |t|
         t[:b].should_receive(:exchange_to).once.with(t[:a].currency).and_return(Money.new(t[:b].cents * 2, :USD))
         (t[:a] / t[:b]).should == t[:c]
+      end
+    end
+
+    context "infinite_precision = true" do
+      before do
+        Money.infinite_precision = true
+      end
+
+      after do
+        Money.infinite_precision = false
+      end
+
+      it "uses BigDecimal division" do
+        ts = [
+          {:a => Money.new( 13, :USD), :b =>  4, :c => Money.new( 3.25, :USD)},
+          {:a => Money.new( 13, :USD), :b => -4, :c => Money.new(-3.25, :USD)},
+          {:a => Money.new(-13, :USD), :b =>  4, :c => Money.new(-3.25, :USD)},
+          {:a => Money.new(-13, :USD), :b => -4, :c => Money.new( 3.25, :USD)},
+        ]
+        ts.each do |t|
+          (t[:a] / t[:b]).should == t[:c]
+        end
       end
     end
   end
@@ -314,6 +335,28 @@ describe Money do
         t[:a].div(t[:b]).should == t[:c]
       end
     end
+
+    context "infinite_precision = true" do
+      before do
+        Money.infinite_precision = true
+      end
+
+      after do
+        Money.infinite_precision = false
+      end
+
+      it "uses BigDecimal division" do
+        ts = [
+          {:a => Money.new( 13, :USD), :b =>  4, :c => Money.new( 3.25, :USD)},
+          {:a => Money.new( 13, :USD), :b => -4, :c => Money.new(-3.25, :USD)},
+          {:a => Money.new(-13, :USD), :b =>  4, :c => Money.new(-3.25, :USD)},
+          {:a => Money.new(-13, :USD), :b => -4, :c => Money.new( 3.25, :USD)},
+        ]
+        ts.each do |t|
+          t[:a].div(t[:b]).should == t[:c]
+        end
+      end
+    end
   end
 
   describe "#divmod" do
@@ -351,6 +394,28 @@ describe Money do
       ts.each do |t|
         t[:b].should_receive(:exchange_to).once.with(t[:a].currency).and_return(Money.new(t[:b].cents * 2, :USD))
         t[:a].divmod(t[:b]).should == t[:c]
+      end
+    end
+
+    context "infinite_precision = true" do
+      before do
+        Money.infinite_precision = true
+      end
+
+      after do
+        Money.infinite_precision = false
+      end
+
+      it "uses BigDecimal division" do
+        ts = [
+            {:a => Money.new( 13, :USD), :b =>  4, :c => [Money.new( 3, :USD), Money.new( 1, :USD)]},
+            {:a => Money.new( 13, :USD), :b => -4, :c => [Money.new(-4, :USD), Money.new(-3, :USD)]},
+            {:a => Money.new(-13, :USD), :b =>  4, :c => [Money.new(-4, :USD), Money.new( 3, :USD)]},
+            {:a => Money.new(-13, :USD), :b => -4, :c => [Money.new( 3, :USD), Money.new(-1, :USD)]},
+        ]
+        ts.each do |t|
+          t[:a].divmod(t[:b]).should == t[:c]
+        end
       end
     end
   end
@@ -506,5 +571,4 @@ describe Money do
       money.nonzero?.should be_equal(money)
     end
   end
-
 end

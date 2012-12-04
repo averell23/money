@@ -8,7 +8,7 @@ describe Money::Currency do
 
   describe ".find" do
     it "returns currency matching given id" do
-      Money::Currency.register(MultiJson.load(FOO, :symbolize_keys => true))
+      Money::Currency.register(JSON.parse(FOO, :symbolize_names => true))
 
       expected = Money::Currency.new(:foo)
       Money::Currency.find(:foo).should  == expected
@@ -46,7 +46,7 @@ describe Money::Currency do
     end
 
     it "raises UnknownMoney::Currency with unknown currency" do
-      lambda { Money::Currency.new("xxx") }.should raise_error(Money::Currency::UnknownCurrency, /xxx/)
+      expect { Money::Currency.new("xxx") }.to raise_error(Money::Currency::UnknownCurrency, /xxx/)
     end
   end
 
@@ -109,9 +109,8 @@ describe Money::Currency do
     end
 
     it "doesn't create new symbols indefinitely" do
-      expect {
-        expect { Money::Currency.new("bogus") }.to raise_exception(Money::Currency::UnknownCurrency)
-      }.to_not change{ Symbol.all_symbols.size }
+      expect { Money::Currency.new("bogus") }.to raise_exception(Money::Currency::UnknownCurrency)
+      Symbol.all_symbols.map{|s| s.to_s}.should_not include("bogus")
     end
   end
 
@@ -129,7 +128,7 @@ describe Money::Currency do
     end
 
     it "proper places for custom currency" do
-      Money::Currency.register(MultiJson.load(FOO, :symbolize_keys => true))
+      Money::Currency.register(JSON.parse(FOO, :symbolize_names => true))
       Money::Currency.new(:foo).decimal_places == 3
     end
   end

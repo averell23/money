@@ -27,8 +27,10 @@ describe Money, "parsing" do
         before do
           Money.assume_from_symbol = true
         end
-        it "parses formatted inputs with the currency passed as a symbol" do
-          Money.parse("$5.95").should == Money.new(595, 'USD')
+        it "parses formatted inputs with the currency passed as a symbol" do 
+          with_default_currency("EUR") do
+            Money.parse("$5.95").should == Money.new(595, 'USD')
+          end
           Money.parse("€5.95").should == Money.new(595, 'EUR')
           Money.parse(" €5.95 ").should == Money.new(595, 'EUR')
           Money.parse("£9.99").should == Money.new(999, 'GBP')
@@ -72,9 +74,9 @@ describe Money, "parsing" do
     end
 
     it "does not return a price if there is a price range" do
-      lambda { Money.parse('$5.95-10.95') }.should    raise_error ArgumentError
-      lambda { Money.parse('$5.95 - 10.95') }.should  raise_error ArgumentError
-      lambda { Money.parse('$5.95 - $10.95') }.should raise_error ArgumentError
+      expect { Money.parse('$5.95-10.95') }.to    raise_error ArgumentError
+      expect { Money.parse('$5.95 - 10.95') }.to  raise_error ArgumentError
+      expect { Money.parse('$5.95 - $10.95') }.to raise_error ArgumentError
     end
 
     it "does not return a price for completely invalid input" do
@@ -96,7 +98,7 @@ describe Money, "parsing" do
     end
 
     it "raises ArgumentError when unable to detect polarity" do
-      lambda { Money.parse('-$5.95-') }.should raise_error ArgumentError
+      expect { Money.parse('-$5.95-') }.to raise_error ArgumentError
     end
 
     it "parses correctly strings with exactly 3 decimal digits" do
@@ -105,8 +107,8 @@ describe Money, "parsing" do
 
     context "custom currencies with 4 decimal places" do
       before :each do
-        Money::Currency.register(MultiJson.load(bar, :symbolize_keys => true))
-        Money::Currency.register(MultiJson.load(eu4, :symbolize_keys => true))
+        Money::Currency.register(JSON.parse(bar, :symbolize_names => true))
+        Money::Currency.register(JSON.parse(eu4, :symbolize_names => true))
       end
 
       # String#to_money(Currency) is equivalent to Money.parse(String, Currency)
@@ -258,7 +260,7 @@ describe Money, "parsing" do
     end
 
     it "raises ArgumentError with unsupported argument" do
-      lambda { Money.from_numeric("100") }.should raise_error(ArgumentError)
+      expect { Money.from_numeric("100") }.to raise_error(ArgumentError)
     end
 
     it "optimizes workload" do

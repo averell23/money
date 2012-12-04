@@ -1,13 +1,18 @@
 # encoding: utf-8
 
-require 'multi_json'
+require 'json'
 
 class Money
 
   # Represents a specific currency unit.
   class Currency
     include Comparable
-    extend  CurrencyLoader
+
+    require "money/currency/loader"
+    extend  Loader
+
+    require "money/currency/heuristics"
+    extend  Heuristics
 
     # Thrown when an unknown currency is requested.
     class UnknownCurrency < StandardError; end
@@ -144,7 +149,7 @@ class Money
     #
     # @return [String]
     attr_reader :thousands_separator
-    alias :delimiter :thousands_separator 
+    alias :delimiter :thousands_separator
 
     # Should the currency symbol precede the amount, or should it come after?
     #

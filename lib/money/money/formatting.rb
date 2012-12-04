@@ -123,6 +123,10 @@ class Money
     #   # You can specify a string as value to enforce using a particular symbol.
     #   Money.new(100, "AWG").format(:symbol => "ƒ") #=> "ƒ1.00"
     #
+    #   # You can specify a indian currency format
+    #   Money.new(10000000, "INR").format(:south_asian_number_formatting => true) #=> "1,00,000.00"
+    #   Money.new(10000000).format(:south_asian_number_formatting => true) #=> "$1,00,000.00"
+    #
     # @option *rules [Boolean, String, nil] :decimal_mark (true) Whether the
     #  currency should be separated by the specified character or '.'
     #
@@ -161,7 +165,7 @@ class Money
       rules = normalize_formatting_rules(rules)
       rules = localize_formatting_rules(rules)
 
-      if cents == 0
+      if fractional == 0
         if rules[:display_free].respond_to?(:to_str)
           return rules[:display_free]
         elsif rules[:display_free]
@@ -220,13 +224,7 @@ class Money
       end
 
       # Apply thousands_separator
-      regexp_decimal = Regexp.escape(decimal_mark)
-      regexp_format  = if formatted =~ /#{regexp_decimal}/
-           /(\d)(?=(?:\d{3})+(?:#{regexp_decimal}))/
-         else
-           /(\d)(?=(?:\d{3})+(?:[^\d]{1}|$))/
-         end
-      formatted.gsub!(regexp_format, "\\1#{thousands_separator_value}")
+      formatted.gsub!(regexp_format(formatted, rules, decimal_mark), "\\1#{thousands_separator_value}")
 
       if rules[:with_currency]
         formatted << " "
@@ -272,14 +270,41 @@ class Money
     # @example
     #   Money.ca_dollar(100).to_s #=> "1.00"
     def to_default_s
-      unit, subunit  = cents.abs.divmod(currency.subunit_to_unit).map{|o| o.to_s}
-      if currency.decimal_places == 0
-        return "-#{unit}" if cents < 0
-        return unit
+      unit, subunit = fractional().abs.divmod(currency.subunit_to_unit)
+
+      unit_str       = ""
+      subunit_str    = ""
+      fraction_str   = ""
+
+      if self.class.infinite_precision
+        subunit, fraction = subunit.divmod(BigDecimal("1"))
+
+        unit_str       = unit.to_i.to_s
+        subunit_str    = subunit.to_i.to_s
+        fraction_str   = fraction.to_s("F")[2..-1] # want fractional part "0.xxx"
+
+        fraction_str = "" if fraction_str =~ /^0+$/
+      else
+        unit_str, subunit_str = unit.to_s, subunit.to_s
       end
-      subunit = (("0" * currency.decimal_places) + subunit)[(-1*currency.decimal_places)..-1]
-      return "-#{unit}#{decimal_mark}#{subunit}" if cents < 0
-      "#{unit}#{decimal_mark}#{subunit}"
+
+      absolute_str = if currency.decimal_places == 0
+        if fraction_str == ""
+          unit_str
+        else
+          "#{unit_str}#{decimal_mark}#{fraction_str}"
+        end
+      else
+        # need to pad subunit to right position,
+        # for example 1 usd 3 cents should be 1.03 not 1.3
+        subunit_str.insert(0, '0') while subunit_str.length < currency.decimal_places
+
+        "#{unit_str}#{decimal_mark}#{subunit_str}#{fraction_str}"
+      end
+
+      absolute_str.tap do |str|
+        str.insert(0, "-") if fractional() < 0
+      end
     end
 
     private
@@ -303,6 +328,19 @@ class Money
         rules[:thousands_separator] = rules[:delimiter]
       end
       rules
+    end
+  end
+
+  def regexp_format(formatted, rules, decimal_mark)
+    regexp_decimal = Regexp.escape(decimal_mark)
+    if rules[:south_asian_number_formatting]
+      /(\d+?)(?=(\d\d)+(\d)(?:\.))/
+    else
+      if formatted =~ /#{regexp_decimal}/
+        /(\d)(?=(?:\d{3})+(?:#{regexp_decimal}))/
+      else
+        /(\d)(?=(?:\d{3})+(?:[^\d]{1}|$))/
+      end
     end
   end
 

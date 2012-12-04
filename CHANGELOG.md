@@ -1,13 +1,40 @@
 # Changelog
 
-## 5.1.0
+## 5.1.0
+
+- Fix currency assumption when parsing $ with a non-USD default currency.
+- Changed the Bulgarian lev symbol position from before the amount to after the amount.
+- Changed the symbol and html entity for INR. It is now "₹" instead of "₨".
+- Added Money::Currency.analyze for determining potential currencies for a given string using powereful algorithms - will detect symbols, iso codes and names even if mixed with text.
+- Changed UGX symbol from 'Sh' to 'USh'.
+- Changed SYP symbol from "£ or ل.س" to "£S". The previous symbols remain as alternates.
+- Changed RWF symbol from 'FR' to 'FRw'.
+- Changed RSD symbol from "din. or дин." to 'РСД'. The previous symbols remain as alternates.
+- Added MGA symbol 'Ar'
+- Added KGS symbol 'som'
+- Changed KES symbol from 'Sh' to 'KSh'
+- Added ETB symbol 'Br'
+- Changed EGP symbol from "£ or ج.م" to "ج.م"
+- Changed DJF symbol from 'Fr' to 'Fdj'
+- Changed CVE symbol from '$ or Esc' to '$'. 'Esc' remains as an alternate symbol.
+- Added BTN symbol 'Nu.'
+- Changed BAM symbol from 'KM or КМ' to 'КМ', the alternate (cyrillic script) remains as an alternate symbol.
+- Added alternate symbols for all currencies. For example, USD can be written as both '$' and 'US$', SEK can be 'Kr' or ':-', etc.
+- Renamed Money#cents to Money#fractional. Money#cents can still be used as a synonym and equivalent of Money#fractional.
+- Added Money.new_with_amount and Money#amount. Money.new_with_dollars and Money#dollars remain as synonyms.
+- Calling Bank::Base.instance doesn't make Bank::VariableExchange.instance
+  return Bank::Base.instance anymore (semaperepelitsa)
+- Update Turkmenistan manat from TMM to TMT currency (GH-181). [Thanks @Exoth]
+- Moved ZWD Zimbabwean dollars to currency_bc.json, also added there ZWL, ZWN, and ZWR Zimbabwean dollars (GH-184).
 - Switch to multi_json gem (GH-170)
 - Fix "warning: ambiguous first argument..." (GH-166)
 - Update dependencies to latest and greatest (GH-172)
 - TravisBot is now watching Pull Request!!! (GH-171)
 - Minor code cleaning
+- Remove subunit from South Korean won (KRW)
 
 ## 5.0.0
+
 - Minor bugfix - incorrect use of character range resulted in 
   botched results for Money::Parsing#extract_cents (GH-162)
 - Money::Currency::TABLE removed. Use Money::Currency.register to add

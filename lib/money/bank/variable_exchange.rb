@@ -1,7 +1,6 @@
 require 'money/bank/base'
-
-autoload :MultiJson, 'multi_json'
-autoload :YAML, 'yaml'
+require 'json'
+require 'yaml'
 
 class Money
   module Bank
@@ -25,10 +24,10 @@ class Money
     #   c2 = 100_00.to_money("CAD")
     #
     #   # Exchange 100 USD to CAD:
-    #   bank.exchange_with(c1, "CAD") #=> #<Money @cents=1245150>
+    #   bank.exchange_with(c1, "CAD") #=> #<Money @fractional=1245150>
     #
     #   # Exchange 100 CAD to USD:
-    #   bank.exchange_with(c2, "USD") #=> #<Money @cents=803115>
+    #   bank.exchange_with(c2, "USD") #=> #<Money @fractional=803115>
     class VariableExchange < Base
 
       attr_reader :rates
@@ -81,10 +80,10 @@ class Money
       #   c2 = 100_00.to_money("CAD")
       #
       #   # Exchange 100 USD to CAD:
-      #   bank.exchange_with(c1, "CAD") #=> #<Money @cents=1245150>
+      #   bank.exchange_with(c1, "CAD") #=> #<Money @fractional=1245150>
       #
       #   # Exchange 100 CAD to USD:
-      #   bank.exchange_with(c2, "USD") #=> #<Money @cents=803115>
+      #   bank.exchange_with(c2, "USD") #=> #<Money @fractional=803115>
       def exchange_with(from, to_currency)
         return from if same_currency?(from.currency, to_currency)
 
@@ -94,9 +93,9 @@ class Money
         end
         _to_currency_  = Currency.wrap(to_currency)
 
-        cents = BigDecimal.new(from.cents.to_s) / (BigDecimal.new(from.currency.subunit_to_unit.to_s) / BigDecimal.new(_to_currency_.subunit_to_unit.to_s))
+        fractional = BigDecimal.new(from.fractional.to_s) / (BigDecimal.new(from.currency.subunit_to_unit.to_s) / BigDecimal.new(_to_currency_.subunit_to_unit.to_s))
 
-        ex = cents * BigDecimal.new(rate.to_s)
+        ex = fractional * BigDecimal.new(rate.to_s)
         ex = ex.to_f
         ex = if block_given?
                yield ex
@@ -186,7 +185,7 @@ class Money
         @mutex.synchronize {
           s = case format
               when :json
-                MultiJson.dump(@rates)
+                JSON.dump(@rates)
               when :ruby
                 Marshal.dump(@rates)
               when :yaml
@@ -224,7 +223,7 @@ class Money
         @mutex.synchronize {
           @rates = case format
                    when :json
-                     MultiJson.load(s)
+                     JSON.load(s)
                    when :ruby
                      Marshal.load(s)
                    when :yaml

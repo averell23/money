@@ -1,7 +1,7 @@
-module CurrencyLoader
+module Money::Currency::Loader
   extend self
 
-  DATA_PATH = File.expand_path("../../../config", __FILE__)
+  DATA_PATH = File.expand_path("../../../../config", __FILE__)
 
   # Loads and returns the currencies stored in JSON files in the config directory.
   #
@@ -16,6 +16,6 @@ module CurrencyLoader
   def parse_currency_file(filename)
     json = File.read("#{DATA_PATH}/#{filename}")
     json.force_encoding(::Encoding::UTF_8) if defined?(::Encoding)
-    MultiJson.load(json, :symbolize_keys => true)
+    JSON.parse(json, :symbolize_names => true)
   end
 end
