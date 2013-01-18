@@ -22,6 +22,27 @@ describe Money::Currency do
     end
   end
 
+  describe ".find_by_iso_numeric" do
+    it "returns currency matching given numeric code" do
+      Money::Currency.find_by_iso_numeric(978).should          == Money::Currency.new(:eur)
+      Money::Currency.find_by_iso_numeric(208).should_not      == Money::Currency.new(:eur)
+      Money::Currency.find_by_iso_numeric('840').should        == Money::Currency.new(:usd)
+
+      class Mock
+        def to_s
+          '208'
+        end
+      end
+      Money::Currency.find_by_iso_numeric(Mock.new).should     == Money::Currency.new(:dkk)
+      Money::Currency.find_by_iso_numeric(Mock.new).should_not == Money::Currency.new(:usd)
+    end
+
+    it "returns nil if no currency has the given numeric code" do
+      Money::Currency.find_by_iso_numeric('non iso 4217 numeric code').should == nil
+      Money::Currency.find_by_iso_numeric(0).should                           == nil
+    end
+  end
+
   describe ".wrap" do
     it "returns nil if object is nil" do
       Money::Currency.wrap(nil).should == nil
@@ -91,7 +112,7 @@ describe Money::Currency do
   describe "#inspect" do
     it "works as documented" do
       Money::Currency.new(:usd).inspect.should ==
-          %Q{#<Money::Currency id: usd, priority: 1, symbol_first: true, thousands_separator: ,, html_entity: $, decimal_mark: ., name: United States Dollar, symbol: $, subunit_to_unit: 100, iso_code: USD, iso_numeric: 840, subunit: Cent>}
+          %Q{#<Money::Currency id: usd, priority: 1, symbol_first: true, thousands_separator: ,, html_entity: $, decimal_mark: ., name: United States Dollar, symbol: $, subunit_to_unit: 100, exponent: 2.0, iso_code: USD, iso_numeric: 840, subunit: Cent>}
     end
   end
 
@@ -118,6 +139,14 @@ describe Money::Currency do
     it "works as documented" do
       Money::Currency.new(:usd).code.should == "$"
       Money::Currency.new(:azn).code.should == "AZN"
+    end
+  end
+
+  describe "#exponent" do
+    it "conforms to iso 4217" do
+      Money::Currency.new(:jpy).exponent == 0
+      Money::Currency.new(:usd).exponent == 2
+      Money::Currency.new(:iqd).exponent == 3
     end
   end
 

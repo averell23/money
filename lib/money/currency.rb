@@ -35,6 +35,23 @@ class Money
         new(id) if self.table[id]
       end
 
+      # Lookup a currency with given +num+ as an ISO 4217 numeric and returns an
+      # +Currency+ instance on success, +nil+ otherwise.
+      #
+      # @param [#to_s] num used to look into +table+ in +iso_numeric+ and find
+      # the right currency id.
+      #
+      # @return [Money::Currency]
+      #
+      # @example
+      #   Money::Currency.find_by_iso_numeric(978) #=> #<Money::Currency id: eur ...>
+      #   Money::Currency.find_by_iso_numeric('001') #=> nil
+      def find_by_iso_numeric(num)
+        num = num.to_s
+        id, garbage = self.table.find{|key, currency| currency[:iso_numeric] == num}
+        new(id) if self.table[id]
+      end
+
       # Wraps the object in a +Currency+ unless it's already a +Currency+
       # object.
       #
@@ -138,6 +155,11 @@ class Money
     #
     # @return [Integer]
     attr_reader :subunit_to_unit
+
+    # The number of digits after the decimal separator.
+    #
+    # @return [Float]
+    attr_reader :exponent
 
     # The decimal mark, or character used to separate the whole unit from the subunit.
     #
@@ -244,7 +266,7 @@ class Money
     # @example
     #   Money::Currency.new(:usd) #=> #<Currency id: usd ...>
     def inspect
-      "#<#{self.class.name} id: #{id}, priority: #{priority}, symbol_first: #{symbol_first}, thousands_separator: #{thousands_separator}, html_entity: #{html_entity}, decimal_mark: #{decimal_mark}, name: #{name}, symbol: #{symbol}, subunit_to_unit: #{subunit_to_unit}, iso_code: #{iso_code}, iso_numeric: #{iso_numeric}, subunit: #{subunit}>"
+      "#<#{self.class.name} id: #{id}, priority: #{priority}, symbol_first: #{symbol_first}, thousands_separator: #{thousands_separator}, html_entity: #{html_entity}, decimal_mark: #{decimal_mark}, name: #{name}, symbol: #{symbol}, subunit_to_unit: #{subunit_to_unit}, exponent: #{exponent}, iso_code: #{iso_code}, iso_numeric: #{iso_numeric}, subunit: #{subunit}>"
     end
 
     # Returns a string representation corresponding to the upcase +id+
@@ -279,6 +301,13 @@ class Money
 
     def symbol_first?
       !!@symbol_first
+    end
+
+    # Returns the number of digits after the decimal separator.
+    #
+    # @return [Float]
+    def exponent
+      Math.log10(@subunit_to_unit)
     end
 
     # Cache decimal places for subunit_to_unit values.  Common ones pre-cached.

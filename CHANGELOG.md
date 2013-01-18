@@ -1,5 +1,12 @@
 # Changelog
 
+## master
+
+- Ensure BigDecimal.new always receives a string - compatibility fix for ruby-1.9.2-p320
+- Update Maldivian Currency to MVR and fix ރ. to be ރ
+- Add exponent to currency
+- Add find_numeric to find currencies by ISO 4217 numeric code.
+
 ## 5.1.0
 
 - Fix currency assumption when parsing $ with a non-USD default currency.
